@@ -4,15 +4,17 @@ import (
 	"io"
 	"log"
 	"net"
+	"strings"
 	"sync"
 	"github.com/espenraugstad/is105sem03/mycrypt"
+	"github.com/liahra/minyr/yr"
 )
 
 func main() {
 
 	var wg sync.WaitGroup
 
-	server, err := net.Listen("tcp", "172.17.0.3:8080")
+	server, err := net.Listen("tcp", "172.17.0.2:8007")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -38,9 +40,22 @@ func main() {
 						return // fra for løkke
 					}
 					dekryptertMelding := mycrypt.Krypter([]rune(string(buf[:n])), mycrypt.ALF_SEM03, len(mycrypt.ALF_SEM03)-4)
-					switch msg := string(dekryptertMelding); msg {
-  				        case "ping":
-						_, err = c.Write([]byte("pong"))
+
+					msg := string(dekryptertMelding)
+
+					switch {
+  				        case msg == "ping":
+						krypterPong := mycrypt.Krypter([]rune("pong"), mycrypt.ALF_SEM03, 4)
+						_, err = c.Write([]byte(string(krypterPong)))
+					case strings.Contains(msg, "Kjevik"):
+						output, err := yr.CelsiusToFahrenheitLine(msg)
+						if err != nil {
+							log.Println(err)
+						}
+
+						log.Println(output)
+						kryptertOutput := mycrypt.Krypter([]rune(output), mycrypt.ALF_SEM03, 4)
+						_, err = c.Write([]byte(string(kryptertOutput)))
 					default:
 						_, err = c.Write(buf[:n])
 					}
